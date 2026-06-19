@@ -47,7 +47,7 @@ def get_year_summary(year: int):
         current_event = races_schedule[races_schedule["RoundNumber"] == i]
         event_format = current_event["EventFormat"].iloc[0]
 
-        if event_format == "sprint" or event_format == "sprint_shootout":
+        if event_format in ["sprint", "sprint_shootout", "sprint_qualifying"]:
             sprint_session = fastf1.get_session(year, i, "S")
             sprint_session.load(telemetry=False, weather=False, messages=False)
             sprint_results = sprint_session.results[sprint_session.results["Abbreviation"] == "VER"]
