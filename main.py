@@ -19,7 +19,7 @@ def get_schedule(year: int):
 @app.get("/max/results/{year}/{race}")
 def get_race_results(year: int, race: int | str):
     session = fastf1.get_session(year, race, "R")
-    session.load(telemetry=False, weather=False, messages=False)
+    session.load(laps=False, telemetry=False, weather=False, messages=False)
     filtered_results = session.results[session.results["Abbreviation"] == "VER"]
     filtered_results_dict = filtered_results.astype(str).to_dict(orient="records")
     return filtered_results_dict
@@ -35,7 +35,8 @@ def get_year_summary(year: int):
 
     for i in range(1, races_num + 1):
         session = fastf1.get_session(year, i, "R")
-        session.load(telemetry=False, weather=False, messages=False)
+
+        session.load(laps=False, telemetry=False, weather=False, messages=False)
         filtered_results = session.results[session.results["Abbreviation"] == "VER"]
 
         total_points += filtered_results["Points"].sum()
@@ -49,7 +50,7 @@ def get_year_summary(year: int):
 
         if event_format in ["sprint", "sprint_shootout", "sprint_qualifying"]:
             sprint_session = fastf1.get_session(year, i, "S")
-            sprint_session.load(telemetry=False, weather=False, messages=False)
+            sprint_session.load(laps=False, telemetry=False, weather=False, messages=False)
             sprint_results = sprint_session.results[sprint_session.results["Abbreviation"] == "VER"]
 
             total_points += sprint_results["Points"].sum()
