@@ -1,3 +1,4 @@
+from fastapi.middleware.cors import CORSMiddleware
 import os
 
 from fastapi import FastAPI
@@ -6,6 +7,13 @@ from datetime import datetime
 
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],                                                      
+    allow_headers=["*"]
+)
 
 os.makedirs("cache", exist_ok=True)
 
@@ -147,3 +155,51 @@ def get_track_history(track_name: str):
             total_podiums += 1
 
     return { "track": track_name, "races_entered": races_entered, "wins": total_wins, "podiums": total_podiums }
+
+@app.get("/max/track/{track_name}/fastest-lap")
+def get_fastest_lap(track_name: str):
+    absolute_fastest_time = 999999.0
+    fastest_year = 0
+    fastest_compound = ""
+    current_year = datetime.now().year
+
+    for i in range(2018, current_year):
+        schedule = fastf1.get_event_schedule(i)
+        races_schedule = schedule[schedule["EventFormat"] != "testing"] 
+        contains_track = races_schedule[schedule["Location"].str.contains(track_name, case=False)]
+
+        if len(contains_track) == 0:
+            continue
+
+        round_number = contains_track["RoundNumber"].iloc[0]
+        session = fastf1.get_session(i, round_number, "R")
+
+        session.load(telemetry=False, weather=False, messages=False)
+
+        try:
+            ver_laps = session.laps.pick_driver("VER")
+
+            if ver_laps.empty:
+                continue
+        except fastf1.exceptions.DataNotLoadedError: # pyright: ignore[reportAttributeAccessIssue]
+            continue
+
+        fastest_lap = ver_laps.pick_fastest()
+        if fastest_lap is None:
+            continue
+
+        lap_time_sec = fastest_lap["LapTime"].total_seconds()
+        if absolute_fastest_time > lap_time_sec:
+            absolute_fastest_time = lap_time_sec
+            fastest_year = i
+            fastest_compound = fastest_lap["Compound"]
+
+    minutes = int(absolute_fastest_time // 60)
+    seconds = absolute_fastest_time % 60
+    formatted_fastest_time = f"{minutes}:{seconds:06.3f}"
+
+    return {
+        "year": fastest_year,
+        "fastest_lap_time": formatted_fastest_time, 
+        "compound": fastest_compound
+    }
