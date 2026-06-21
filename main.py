@@ -9,9 +9,12 @@ from datetime import datetime
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:4200",
+        "https://f1-max.vercel.app"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],                                                      
+    allow_methods=["GET", "OPTIONS"],                                                      
     allow_headers=["*"]
 )
 
