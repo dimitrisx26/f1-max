@@ -43,29 +43,41 @@ def get_year_summary(year: int):
     races_num = races_schedule["RoundNumber"].max()
 
     for i in range(1, races_num + 1):
-        session = fastf1.get_session(year, i, "R")
+        try:
+            session = fastf1.get_session(year, i, "R")
 
-        session.load(laps=False, telemetry=False, weather=False, messages=False)
-        filtered_results = session.results[session.results["Abbreviation"] == "VER"]
+            session.load(laps=False, telemetry=False, weather=False, messages=False)
+            filtered_results = session.results[session.results["Abbreviation"] == "VER"]
 
-        total_points += filtered_results["Points"].sum()
+            total_points += filtered_results["Points"].sum()
 
-        filtered_results_dict = filtered_results.astype(str).to_dict(orient="records")
-        if len(filtered_results_dict) > 0:
-            all_races_data.append(filtered_results_dict[0])
+            current_event = races_schedule[races_schedule["RoundNumber"] == i]
+            event_name = current_event["EventName"].iloc[0]
+            event_format = current_event["EventFormat"].iloc[0]
 
-        current_event = races_schedule[races_schedule["RoundNumber"] == i]
-        event_format = current_event["EventFormat"].iloc[0]
+            filtered_results_dict = filtered_results.astype(str).to_dict(orient="records")
+            if len(filtered_results_dict) > 0:
+                res = filtered_results_dict[0]
+                res["TrackName"] = event_name
+                all_races_data.append(res)
 
-        if event_format in ["sprint", "sprint_shootout", "sprint_qualifying"]:
-            sprint_session = fastf1.get_session(year, i, "S")
-            sprint_session.load(laps=False, telemetry=False, weather=False, messages=False)
-            sprint_results = sprint_session.results[sprint_session.results["Abbreviation"] == "VER"]
+            if event_format in ["sprint", "sprint_shootout", "sprint_qualifying"]:
+                try:
+                    sprint_session = fastf1.get_session(year, i, "S")
+                    sprint_session.load(laps=False, telemetry=False, weather=False, messages=False)
+                    sprint_results = sprint_session.results[sprint_session.results["Abbreviation"] == "VER"]
 
-            total_points += sprint_results["Points"].sum()
-            sprint_results_dict = sprint_results.astype(str).to_dict(orient="records")
-            if len(sprint_results_dict) > 0:
-                all_races_data.append(sprint_results_dict[0])
+                    total_points += sprint_results["Points"].sum()
+                    sprint_results_dict = sprint_results.astype(str).to_dict(orient="records")
+                    if len(sprint_results_dict) > 0:
+                        sprint_res = sprint_results_dict[0]
+                        sprint_res["TrackName"] = event_name + " (Sprint)"
+                        all_races_data.append(sprint_res)
+                except Exception as e:
+                    print(f"Skipping sprint round {i}: {e}")
+        except Exception as e:
+            print(f"Skipping round {i}: {e}")
+            continue
 
     return { "year": year, "points": total_points, "races_data": all_races_data }
 
@@ -79,33 +91,40 @@ def calculate_yearly_stats(driver_abbr: str, year: int):
     races_num = races_schedule["RoundNumber"].max()
 
     for i in range(1, races_num + 1):
-        session = fastf1.get_session(year, i, "R")
+        try:
+            session = fastf1.get_session(year, i, "R")
 
-        session.load(laps=False, telemetry=False, weather=False, messages=False)
-        filtered_results = session.results[session.results["Abbreviation"] == driver_abbr.upper()]
+            session.load(laps=False, telemetry=False, weather=False, messages=False)
+            filtered_results = session.results[session.results["Abbreviation"] == driver_abbr.upper()]
 
-        total_points += filtered_results["Points"].sum()
+            total_points += filtered_results["Points"].sum()
 
-        filtered_results_dict = filtered_results.astype(str).to_dict(orient="records")
+            filtered_results_dict = filtered_results.astype(str).to_dict(orient="records")
 
-        if len(filtered_results_dict) > 0:
-            position = filtered_results["Position"].sum()
+            if len(filtered_results_dict) > 0:
+                position = filtered_results["Position"].sum()
 
-            if position == 1.0:
-                total_wins += 1
+                if position == 1.0:
+                    total_wins += 1
 
-            if position <= 3.0:
-                total_podiums += 1
+                if position <= 3.0:
+                    total_podiums += 1
 
-        current_event = races_schedule[races_schedule["RoundNumber"] == i]
-        event_format = current_event["EventFormat"].iloc[0]
+            current_event = races_schedule[races_schedule["RoundNumber"] == i]
+            event_format = current_event["EventFormat"].iloc[0]
 
-        if event_format in ["sprint", "sprint_shootout", "sprint_qualifying"]:
-            sprint_session = fastf1.get_session(year, i, "S")
-            sprint_session.load(laps=False, telemetry=False, weather=False, messages=False)
-            sprint_results = sprint_session.results[sprint_session.results["Abbreviation"] == driver_abbr.upper()]
+            if event_format in ["sprint", "sprint_shootout", "sprint_qualifying"]:
+                try:
+                    sprint_session = fastf1.get_session(year, i, "S")
+                    sprint_session.load(laps=False, telemetry=False, weather=False, messages=False)
+                    sprint_results = sprint_session.results[sprint_session.results["Abbreviation"] == driver_abbr.upper()]
 
-            total_points += sprint_results["Points"].sum()
+                    total_points += sprint_results["Points"].sum()
+                except Exception as e:
+                    print(f"Skipping sprint round {i}: {e}")
+        except Exception as e:
+            print(f"Skipping round {i}: {e}")
+            continue
 
     return { "year": year, "points": total_points, "wins": total_wins, "podiums": total_podiums }
 
