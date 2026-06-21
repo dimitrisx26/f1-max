@@ -14,7 +14,11 @@ import { ComparisonData, DRIVER_MAP, DriverResult, FastestLapData, SeasonStats, 
   styleUrl: './app.scss'
 })
 export class App {
-  private readonly DOMAIN = "http://127.0.0.1:8000"
+
+  /**
+   * API Domain
+   */
+  private readonly DOMAIN = "https://f1-max.onrender.com/"
 
   /**
    * Provides the HttpClient service for making HTTP requests.
@@ -159,4 +163,5 @@ export class App {
         }
       });
   }
+
 }
