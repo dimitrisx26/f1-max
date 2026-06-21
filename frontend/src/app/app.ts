@@ -49,6 +49,11 @@ export class App {
   isCompareLoading = signal<boolean>(false);
   isTrackLoading = signal<boolean>(false);
 
+  ngOnInit(): void {
+    // Load initial season data for 2023 on page load
+    this.loadSeasonData('2023');
+  }
+
   /**
    * Loads season data for a given year, including Max's stats and a summary of the season.
    * @param year the year to load season data for
