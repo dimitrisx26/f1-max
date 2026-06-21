@@ -1,2 +1,188 @@
-{{ apiData() | json }}
+<div class="dashboard-wrapper">
+  <header class="main-header">
+    <h1>Max Verstappen <span class="accent">Command Center</span></h1>
+    <p class="subtitle">Live F1 Telemetry & Historical Data</p>
+  </header>
 
+  <main class="dashboard-grid">
+    
+    <!-- SEASON OVERVIEW -->
+    <section class="dashboard-panel season-panel">
+      <div class="panel-header">
+        <h2>Season Overview</h2>
+        <div class="controls">
+          <input #seasonYear type="number" placeholder="Year (e.g. 2023)" class="glass-input" />
+          <button (click)="loadSeasonData(seasonYear.value)" class="glass-btn">Load</button>
+        </div>
+      </div>
+
+      <div class="panel-content">
+        @if (isSeasonLoading()) {
+          <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Calculating Season Data...</p>
+          </div>
+        } @else {
+          @if (statsData()) {
+            <div class="glass-card highlight-card">
+              <h3>Season {{ statsData()?.year }} Stats</h3>
+              <div class="stat-grid">
+                <div class="stat"><span class="label">Points</span><span class="value">{{ statsData()?.points }}</span></div>
+                <div class="stat"><span class="label">Wins</span><span class="value">{{ statsData()?.wins }}</span></div>
+                <div class="stat"><span class="label">Podiums</span><span class="value">{{ statsData()?.podiums }}</span></div>
+              </div>
+            </div>
+          }
+
+          @if (summaryData()) {
+            <div class="glass-card">
+              <h3>Race Log</h3>
+              <div class="scroll-list">
+                @for (race of summaryData()?.races_data; track $index) {
+                  <div class="list-item flex-col">
+                    <span class="track-title">{{ race.TrackName || 'F1 Grand Prix' }}</span>
+                    <div class="race-details">
+                      <span class="round">Start: P{{ race.GridPosition | number:'1.0-0' }}</span>
+                      <span class="name">{{ race.Status }}</span>
+                      <span class="pos">Finish: P{{ race.Position | number:'1.0-0' }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </section>
+
+    <!-- THE TROPHY CABINET (Right Sidebar) -->
+    <section class="dashboard-panel trophy-panel">
+      <div class="panel-header trophy-header">
+        <h2>Trophy Cabinet</h2>
+        <span class="badge">Records</span>
+      </div>
+
+      <div class="panel-content">
+        <div class="scroll-list" style="max-height: 550px; padding-right: 15px;">
+          @for (record of historicalRecords; track record.title) {
+            <div class="glass-card highlight-card" style="padding: 20px; margin-bottom: 15px;">
+              <h3 style="font-size: 1.1rem; margin-bottom: 5px; color: #fff;">{{ record.title }}</h3>
+              
+              <div style="margin-bottom: 10px;">
+                <strong style="font-size: 26px; color: #FF5B00; margin-right: 15px;">{{ record.value }}</strong>
+                <span class="badge dark-badge" style="font-size: 13px;">{{ record.year_achieved }}</span>
+              </div>
+              
+              <p style="color: #8F9BB3; font-size: 14px; margin: 0; line-height: 1.5;">{{ record.description }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- RACE DEEP DIVE (Half Width) -->
+    <section class="dashboard-panel race-panel">
+      <div class="panel-header">
+        <h2>Race Deep-Dive</h2>
+        <div class="controls">
+          <input #raceYear type="number" placeholder="Year" class="glass-input short" />
+          <input #raceRound type="text" placeholder="Round/Name" class="glass-input short" />
+          <button (click)="loadRaceData(raceYear.value, raceRound.value)" class="glass-btn">Load</button>
+        </div>
+      </div>
+
+      <div class="panel-content">
+        @if (isRaceLoading()) {
+          <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Retrieving Telemetry...</p>
+          </div>
+        } @else {
+          @if ((resultsData()?.length ?? 0) > 0) {
+            <div class="glass-card">
+              <h3>Race Result</h3>
+              <div class="stat-grid">
+                <div class="stat"><span class="label">Grid</span><span class="value">P{{ resultsData()?.[0]?.GridPosition | number:'1.0-0' }}</span></div>
+                <div class="stat"><span class="label">Finish</span><span class="value">P{{ resultsData()?.[0]?.Position | number:'1.0-0' }}</span></div>
+                <div class="stat"><span class="label">Points</span><span class="value">{{ resultsData()?.[0]?.Points }}</span></div>
+                <div class="stat"><span class="label">Status</span><span class="value status">{{ resultsData()?.[0]?.Status }}</span></div>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </section>
+
+    <!-- RIVALRIES & TRACKS (Half Width) -->
+    <section class="dashboard-panel rival-panel">
+      <div class="panel-header">
+        <h2>Rivalries & Tracks</h2>
+      </div>
+
+      <div class="panel-content">
+        <!-- Comparison Control -->
+        <div class="sub-control">
+          <h4>Championship Comparison</h4>
+          <div class="controls">
+            <input #compYear type="number" placeholder="Year" class="glass-input short" />
+            <input #compOpp type="text" placeholder="Opponent" class="glass-input short" />
+            <button (click)="loadComparison(compYear.value, compOpp.value)" class="glass-btn">VS</button>
+          </div>
+        </div>
+
+        @if (isCompareLoading()) {
+          <div class="loading-container" style="padding: 10px 0;">
+            <div class="spinner" style="width: 25px; height: 25px; border-width: 3px;"></div>
+          </div>
+        } @else {
+          @if (compareData()) {
+            <div class="glass-card vs-card">
+              <div class="driver-col">
+                <h4 class="driver-name">{{ driverMap['VER'] }}</h4>
+                <span class="score">{{ compareData()?.max_verstappen?.points }} pts</span>
+              </div>
+              <div class="vs-badge">VS</div>
+              <div class="driver-col">
+                <h4 class="driver-name">{{ driverMap[compOpp.value.toUpperCase()] || (compOpp.value | uppercase) }}</h4>
+                <span class="score">{{ compareData()?.[compOpp.value.toUpperCase()]?.points }} pts</span>
+              </div>
+            </div>
+          }
+        }
+
+        <!-- Track Record Control -->
+        <div class="sub-control">
+          <h4>Track Records</h4>
+          <div class="controls">
+            <input #trackName type="text" placeholder="Track Name" class="glass-input" />
+            <button (click)="loadTrackData(trackName.value)" class="glass-btn">Search</button>
+          </div>
+        </div>
+
+        @if (isTrackLoading()) {
+          <div class="loading-container" style="padding: 10px 0;">
+            <div class="spinner" style="width: 25px; height: 25px; border-width: 3px;"></div>
+          </div>
+        } @else {
+          @if (fastestLapData()) {
+            <div class="glass-card">
+              <div class="card-header">
+                <h3>{{ trackName.value | uppercase }}</h3>
+                <span class="badge">Track Record</span>
+              </div>
+              <div class="stat-grid">
+                <div class="stat"><span class="label">Fastest Lap</span><span class="value">{{ fastestLapData()?.fastest_lap_time }}</span></div>
+                <div class="stat"><span class="label">Year</span><span class="value">{{ fastestLapData()?.year }}</span></div>
+                <div class="stat"><span class="label">Compound</span><span class="value">{{ fastestLapData()?.compound }}</span></div>
+                @if (historyData()) {
+                  <div class="stat"><span class="label">Total Wins</span><span class="value">{{ historyData()?.wins }}</span></div>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </section>
+
+  </main>
+</div>
