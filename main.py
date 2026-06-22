@@ -40,8 +40,51 @@ def get_race_results(year: int, race: int | str):
     filtered_results_dict = filtered_results.astype(str).to_dict(orient="records")
     return filtered_results_dict
 
+def get_round_summary(year: int, round_number: int, event_name: str, event_format: str):
+    round_points = 0
+    round_data = []
+
+    try:
+        session = fastf1.get_session(year, round_number, "R")
+
+        session.load(laps=False, telemetry=False, weather=False, messages=False)
+        filtered_results = session.results[session.results["Abbreviation"] == "VER"]
+
+        round_points += filtered_results["Points"].sum()
+
+        filtered_results_dict = filtered_results.astype(str).to_dict(orient="records")
+        if len(filtered_results_dict) > 0:
+            res = filtered_results_dict[0]
+            res["TrackName"] = event_name
+            res["RoundNumber"] = round_number
+            round_data.append(res)
+
+        if event_format in ["sprint", "sprint_shootout", "sprint_qualifying"]:
+            try:
+                sprint_session = fastf1.get_session(year, round_number, "S")
+                sprint_session.load(laps=False, telemetry=False, weather=False, messages=False)
+                sprint_results = sprint_session.results[sprint_session.results["Abbreviation"] == "VER"]
+
+                round_points += sprint_results["Points"].sum()
+                sprint_results_dict = sprint_results.astype(str).to_dict(orient="records")
+                if len(sprint_results_dict) > 0:
+                    sprint_res = sprint_results_dict[0]
+                    sprint_res["TrackName"] =  "(Sprint) " + event_name
+                    sprint_res["RoundNumber"] = round_number
+                    round_data.append(sprint_res)
+            except Exception as e:
+                print(f"Skipping sprint round {round_number}: {e}")
+    except Exception as e:
+        print(f"Skipping round {round_number}: {e}")
+
+    return { "points": round_points, "round_data": round_data }
+
 @app.get("/max/summary/{year}")
 def get_year_summary(year: int):
+    cache_key = f"year_summary_{year}"
+    if cache_key in cache:
+        return cache[cache_key]
+
     total_points = 0
     all_races_data = []
 
@@ -49,44 +92,27 @@ def get_year_summary(year: int):
     races_schedule = schedule[schedule["EventFormat"] != "testing"]
     races_num = races_schedule["RoundNumber"].max()
 
-    for i in range(1, races_num + 1):
-        try:
-            session = fastf1.get_session(year, i, "R")
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        tasks = []
 
-            session.load(laps=False, telemetry=False, weather=False, messages=False)
-            filtered_results = session.results[session.results["Abbreviation"] == "VER"]
-
-            total_points += filtered_results["Points"].sum()
-
+        for i in range(1, races_num + 1):
             current_event = races_schedule[races_schedule["RoundNumber"] == i]
             event_name = current_event["EventName"].iloc[0]
             event_format = current_event["EventFormat"].iloc[0]
 
-            filtered_results_dict = filtered_results.astype(str).to_dict(orient="records")
-            if len(filtered_results_dict) > 0:
-                res = filtered_results_dict[0]
-                res["TrackName"] = event_name
-                all_races_data.append(res)
+            tasks.append(executor.submit(get_round_summary, year, i, event_name, event_format))
 
-            if event_format in ["sprint", "sprint_shootout", "sprint_qualifying"]:
-                try:
-                    sprint_session = fastf1.get_session(year, i, "S")
-                    sprint_session.load(laps=False, telemetry=False, weather=False, messages=False)
-                    sprint_results = sprint_session.results[sprint_session.results["Abbreviation"] == "VER"]
+        for future in as_completed(tasks):
+            round_result = future.result()
 
-                    total_points += sprint_results["Points"].sum()
-                    sprint_results_dict = sprint_results.astype(str).to_dict(orient="records")
-                    if len(sprint_results_dict) > 0:
-                        sprint_res = sprint_results_dict[0]
-                        sprint_res["TrackName"] = event_name + " (Sprint)"
-                        all_races_data.append(sprint_res)
-                except Exception as e:
-                    print(f"Skipping sprint round {i}: {e}")
-        except Exception as e:
-            print(f"Skipping round {i}: {e}")
-            continue
+            total_points += round_result["points"]
+            all_races_data.extend(round_result["round_data"])
 
-    return { "year": year, "points": total_points, "races_data": all_races_data }
+        all_races_data.sort(key=lambda x: x.get("RoundNumber", 0))
+        summary = { "year": year, "points": total_points, "races_data": all_races_data }
+        cache[cache_key] = summary
+
+    return summary
 
 def get_round_stats(driver_abbr: str, year: int, round_number: int, event_format: str):
     total_points = 0
