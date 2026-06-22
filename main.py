@@ -108,9 +108,9 @@ def get_year_summary(year: int):
             total_points += round_result["points"]
             all_races_data.extend(round_result["round_data"])
 
-        all_races_data.sort(key=lambda x: x.get("RoundNumber", 0))
-        summary = { "year": year, "points": total_points, "races_data": all_races_data }
-        cache[cache_key] = summary
+    all_races_data.sort(key=lambda x: x.get("RoundNumber", 0))
+    summary = { "year": year, "points": total_points, "races_data": all_races_data }
+    cache[cache_key] = summary
 
     return summary
 
@@ -202,36 +202,62 @@ def compare_drivers(opp: str, year: int):
         opp.upper(): opp_stats
     }
 
+def get_track_year_stats(year: int, track_name: str):
+    races_entered = 0
+    total_wins = 0
+    total_podiums = 0
+
+    schedule = fastf1.get_event_schedule(year)
+    contains_track = schedule[schedule["Location"].str.contains(track_name, case=False)]
+
+    if len(contains_track) == 0:
+        return { "races": 0, "wins": 0, "podiums": 0 }
+
+    round_number = contains_track["RoundNumber"].iloc[0]
+    session = fastf1.get_session(year, round_number, "R")
+
+    session.load(laps=False, telemetry=False, weather=False, messages=False)
+    filtered_results = session.results[session.results["Abbreviation"] == "VER"]
+
+    races_entered += 1
+
+    position = filtered_results["Position"].sum()
+    if position == 1.0:
+        total_wins += 1
+
+    if position <= 3.0:
+        total_podiums += 1
+
+    return { "races": races_entered, "wins": total_wins, "podiums": total_podiums }
+
 @app.get("/max/track/{track_name}/history")
 def get_track_history(track_name: str):
+    cache_key = f"history_{track_name}"
+    if cache_key in cache:
+        return cache[cache_key]
+
     races_entered = 0
     total_wins = 0
     total_podiums = 0
     current_year = datetime.now().year
 
-    for i in range(2015, current_year):
-        schedule = fastf1.get_event_schedule(i)
-        contains_track = schedule[schedule["Location"].str.contains(track_name, case=False)]
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        tasks = []
 
-        if len(contains_track) == 0:
-            continue
+        for i in range(2015, current_year):
+            tasks.append(executor.submit(get_track_year_stats, i, track_name))
 
-        round_number = contains_track["RoundNumber"].iloc[0]
-        session = fastf1.get_session(i, round_number, "R")
+        for future in as_completed(tasks):
+            track_result = future.result()
 
-        session.load(laps=False, telemetry=False, weather=False, messages=False)
-        filtered_results = session.results[session.results["Abbreviation"] == "VER"]
+            races_entered += track_result["races"]
+            total_wins += track_result["wins"]
+            total_podiums += track_result["podiums"]
 
-        races_entered += 1
+    track_history = { "track": track_name, "races_entered": races_entered, "wins": total_wins, "podiums": total_podiums }
+    cache[cache_key] = track_history
 
-        position = filtered_results["Position"].sum()
-        if position == 1.0:
-            total_wins += 1
-
-        if position <= 3.0:
-            total_podiums += 1
-
-    return { "track": track_name, "races_entered": races_entered, "wins": total_wins, "podiums": total_podiums }
+    return track_history
 
 @app.get("/max/track/{track_name}/fastest-lap")
 def get_fastest_lap(track_name: str):
