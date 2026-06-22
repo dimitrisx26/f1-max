@@ -28,12 +28,19 @@ fastf1.Cache.enable_cache("cache")
 
 @app.get("/schedule/{year}")
 def get_schedule(year: int):
+    """
+    Fetches the full event schedule for a given Formula 1 season.
+    Returns a list of dictionaries containing event details (date, location, format, etc.).
+    """
     schedule = fastf1.get_event_schedule(year)
     schedule_dict = schedule.to_dict(orient="records")
     return schedule_dict
 
 @app.get("/max/results/{year}/{race}")
 def get_race_results(year: int, race: int | str):
+    """
+    Fetches the specific race results for Max Verstappen ('VER') for a given year and round/race name.
+    """
     session = fastf1.get_session(year, race, "R")
     session.load(laps=False, telemetry=False, weather=False, messages=False)
     filtered_results = session.results[session.results["Abbreviation"] == "VER"]
@@ -41,6 +48,11 @@ def get_race_results(year: int, race: int | str):
     return filtered_results_dict
 
 def get_round_summary(year: int, round_number: int, event_name: str, event_format: str):
+    """
+    Helper function to fetch Max Verstappen's summary data for a single round.
+    Handles both the main race and sprint race (if applicable).
+    Returns total points and a list of race data dictionaries.
+    """
     round_points = 0
     round_data = []
 
@@ -81,6 +93,11 @@ def get_round_summary(year: int, round_number: int, event_name: str, event_forma
 
 @app.get("/max/summary/{year}")
 def get_year_summary(year: int):
+    """
+    Fetches a summary of Max Verstappen's performance across an entire season.
+    Uses a thread pool to fetch each round concurrently.
+    Results are cached to disk.
+    """
     cache_key = f"year_summary_{year}"
     if cache_key in cache:
         return cache[cache_key]
@@ -115,6 +132,10 @@ def get_year_summary(year: int):
     return summary
 
 def get_round_stats(driver_abbr: str, year: int, round_number: int, event_format: str):
+    """
+    Helper function to calculate stats (points, wins, podiums) for a specific driver in a single round.
+    Handles both main races and sprint races.
+    """
     total_points = 0
     total_wins = 0
     total_podiums = 0
@@ -153,6 +174,11 @@ def get_round_stats(driver_abbr: str, year: int, round_number: int, event_format
     return { "points": total_points, "wins": total_wins, "podiums": total_podiums }
 
 def calculate_yearly_stats(driver_abbr: str, year: int):
+    """
+    Calculates the total season stats (points, wins, podiums) for a specific driver.
+    Uses a thread pool to fetch each round concurrently.
+    Results are cached to disk.
+    """
     cache_key = f"stats_{driver_abbr}_{year}"
     if cache_key in cache:
         return cache[cache_key]
@@ -188,11 +214,17 @@ def calculate_yearly_stats(driver_abbr: str, year: int):
 
 @app.get("/max/stats/{year}")
 def get_max_stats(year: int):
+    """
+    Endpoint to fetch Max Verstappen's total season stats for a given year.
+    """
     max_stats = calculate_yearly_stats("VER", year)
     return max_stats
 
 @app.get("/compare/ver/{opp}/{year}")
 def compare_drivers(opp: str, year: int):
+    """
+    Endpoint to compare Max Verstappen's season stats against another driver for a given year.
+    """
     max_stats = get_max_stats(year)
     opp_stats = calculate_yearly_stats(opp, year)
 
@@ -203,6 +235,10 @@ def compare_drivers(opp: str, year: int):
     }
 
 def get_track_year_stats(year: int, track_name: str):
+    """
+    Helper function to fetch Max Verstappen's stats (wins, podiums, races entered) 
+    for a specific track in a specific year.
+    """
     races_entered = 0
     total_wins = 0
     total_podiums = 0
@@ -232,6 +268,11 @@ def get_track_year_stats(year: int, track_name: str):
 
 @app.get("/max/track/{track_name}/history")
 def get_track_history(track_name: str):
+    """
+    Fetches Max Verstappen's complete historical stats (wins, podiums, races entered) for a specific track.
+    Iterates through all years since 2015 concurrently.
+    Results are cached to disk.
+    """
     cache_key = f"history_{track_name}"
     if cache_key in cache:
         return cache[cache_key]
@@ -260,6 +301,10 @@ def get_track_history(track_name: str):
     return track_history
 
 def get_year_fastest_lap(year: int, track_name: str):
+    """
+    Helper function to find Max Verstappen's fastest lap time at a specific track for a single year.
+    Returns the time in seconds and the tire compound used.
+    """
     schedule = fastf1.get_event_schedule(year)
     races_schedule = schedule[schedule["EventFormat"] != "testing"] 
     contains_track = races_schedule[schedule["Location"].str.contains(track_name, case=False)]
@@ -291,6 +336,11 @@ def get_year_fastest_lap(year: int, track_name: str):
 
 @app.get("/max/track/{track_name}/fastest-lap")
 def get_fastest_lap(track_name: str):
+    """
+    Finds Max Verstappen's absolute fastest historical lap time at a specific track.
+    Searches concurrently through all years since 2018.
+    Results are cached to disk.
+    """
     cache_key = f"fastest_lap_{track_name}"
     if cache_key in cache:
         return cache[cache_key]
