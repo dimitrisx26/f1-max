@@ -2,6 +2,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 
 import services
+import models
 
 
 app = FastAPI()
@@ -30,14 +31,14 @@ def get_race_results(year: int, race: int | str):
     """
     return services.load_race_results(year, race)
 
-@app.get("/max/summary/{year}")
+@app.get("/max/summary/{year}", response_model=models.YearSummary)
 def get_year_summary(year: int):
     """
     Fetches a summary of Max Verstappen's performance across an entire season.
     """
     return services.load_year_summary(year)
 
-@app.get("/max/stats/{year}")
+@app.get("/max/stats/{year}", response_model=models.DriverStats)
 def get_max_stats(year: int):
     """
     Endpoint to fetch Max Verstappen's total season stats for a given year.
@@ -59,14 +60,14 @@ def compare_drivers(opp: str, year: int):
         opp.upper(): opp_stats
     }
 
-@app.get("/max/track/{track_name}/history")
+@app.get("/max/track/{track_name}/history", response_model=models.TrackHistory)
 def get_track_history(track_name: str):
     """
     Fetches Max Verstappen's complete historical stats (wins, podiums, races entered) for a specific track.
     """
     return services.load_track_history(track_name)
 
-@app.get("/max/track/{track_name}/fastest-lap")
+@app.get("/max/track/{track_name}/fastest-lap", response_model=models.FastestLap)
 def get_fastest_lap(track_name: str):
     """
     Finds Max Verstappen's absolute fastest historical lap time at a specific track.
