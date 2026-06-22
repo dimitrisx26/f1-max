@@ -259,50 +259,71 @@ def get_track_history(track_name: str):
 
     return track_history
 
+def get_year_fastest_lap(year: int, track_name: str):
+    schedule = fastf1.get_event_schedule(year)
+    races_schedule = schedule[schedule["EventFormat"] != "testing"] 
+    contains_track = races_schedule[schedule["Location"].str.contains(track_name, case=False)]
+
+    if len(contains_track) == 0:
+        return None
+
+    round_number = contains_track["RoundNumber"].iloc[0]
+    session = fastf1.get_session(year, round_number, "R")
+
+    session.load(telemetry=False, weather=False, messages=False)
+
+    try:
+        ver_laps = session.laps.pick_driver("VER")
+
+        if ver_laps.empty:
+            return None
+    except fastf1.exceptions.DataNotLoadedError: # pyright: ignore[reportAttributeAccessIssue]
+        return None
+
+    fastest_lap = ver_laps.pick_fastest()
+    if fastest_lap is None:
+        return None
+
+    lap_time_sec = fastest_lap["LapTime"].total_seconds()
+    fastest_compound = fastest_lap["Compound"]
+
+    return { "year": year, "time": lap_time_sec, "compound": fastest_compound }
+
 @app.get("/max/track/{track_name}/fastest-lap")
 def get_fastest_lap(track_name: str):
+    cache_key = f"fastest_lap_{track_name}"
+    if cache_key in cache:
+        return cache[cache_key]
+
     absolute_fastest_time = 999999.0
     fastest_year = 0
     fastest_compound = ""
     current_year = datetime.now().year
 
-    for i in range(2018, current_year):
-        schedule = fastf1.get_event_schedule(i)
-        races_schedule = schedule[schedule["EventFormat"] != "testing"] 
-        contains_track = races_schedule[schedule["Location"].str.contains(track_name, case=False)]
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        tasks = []
 
-        if len(contains_track) == 0:
-            continue
+        for i in range(2018, current_year):
+            tasks.append(executor.submit(get_year_fastest_lap, i, track_name))
 
-        round_number = contains_track["RoundNumber"].iloc[0]
-        session = fastf1.get_session(i, round_number, "R")
+        for future in as_completed(tasks):
+            year_result = future.result()
 
-        session.load(telemetry=False, weather=False, messages=False)
-
-        try:
-            ver_laps = session.laps.pick_driver("VER")
-
-            if ver_laps.empty:
-                continue
-        except fastf1.exceptions.DataNotLoadedError: # pyright: ignore[reportAttributeAccessIssue]
-            continue
-
-        fastest_lap = ver_laps.pick_fastest()
-        if fastest_lap is None:
-            continue
-
-        lap_time_sec = fastest_lap["LapTime"].total_seconds()
-        if absolute_fastest_time > lap_time_sec:
-            absolute_fastest_time = lap_time_sec
-            fastest_year = i
-            fastest_compound = fastest_lap["Compound"]
+            if year_result is not None:
+                if absolute_fastest_time > year_result["time"]:
+                    absolute_fastest_time = year_result["time"]
+                    fastest_year = year_result["year"]
+                    fastest_compound = year_result["compound"]
 
     minutes = int(absolute_fastest_time // 60)
     seconds = absolute_fastest_time % 60
     formatted_fastest_time = f"{minutes}:{seconds:06.3f}"
 
-    return {
+    fastest_lap = {
         "year": fastest_year,
         "fastest_lap_time": formatted_fastest_time, 
         "compound": fastest_compound
     }
+    cache[cache_key] = fastest_lap
+
+    return fastest_lap
