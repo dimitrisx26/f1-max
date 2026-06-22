@@ -1,9 +1,11 @@
-from fastapi.middleware.cors import CORSMiddleware
 import os
 
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import fastf1
 from datetime import datetime
+from diskcache import Cache
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 app = FastAPI()
@@ -17,6 +19,8 @@ app.add_middleware(
     allow_methods=["GET", "OPTIONS"],                                                      
     allow_headers=["*"]
 )
+
+cache = Cache("cache")
 
 os.makedirs("cache", exist_ok=True)
 
@@ -84,7 +88,49 @@ def get_year_summary(year: int):
 
     return { "year": year, "points": total_points, "races_data": all_races_data }
 
+def get_round_stats(driver_abbr: str, year: int, round_number: int, event_format: str):
+    total_points = 0
+    total_wins = 0
+    total_podiums = 0
+
+    try:
+        session = fastf1.get_session(year, round_number, "R")
+
+        session.load(laps=False, telemetry=False, weather=False, messages=False)
+        filtered_results = session.results[session.results["Abbreviation"] == driver_abbr.upper()]
+
+        total_points += filtered_results["Points"].sum()
+
+        filtered_results_dict = filtered_results.astype(str).to_dict(orient="records")
+
+        if len(filtered_results_dict) > 0:
+            position = filtered_results["Position"].sum()
+
+            if position == 1.0:
+                total_wins += 1
+
+            if position <= 3.0:
+                total_podiums += 1
+
+        if event_format in ["sprint", "sprint_shootout", "sprint_qualifying"]:
+            try:
+                sprint_session = fastf1.get_session(year, round_number, "S")
+                sprint_session.load(laps=False, telemetry=False, weather=False, messages=False)
+                sprint_results = sprint_session.results[sprint_session.results["Abbreviation"] == driver_abbr.upper()]
+
+                total_points += sprint_results["Points"].sum()
+            except Exception as e:
+                    print(f"Skipping sprint round {round_number}: {e}")
+    except Exception as e:
+        print(f"Skipping round {round_number}: {e}")
+
+    return { "points": total_points, "wins": total_wins, "podiums": total_podiums }
+
 def calculate_yearly_stats(driver_abbr: str, year: int):
+    cache_key = f"stats_{driver_abbr}_{year}"
+    if cache_key in cache:
+        return cache[cache_key]
+
     total_points = 0
     total_wins = 0
     total_podiums = 0
@@ -93,43 +139,26 @@ def calculate_yearly_stats(driver_abbr: str, year: int):
     races_schedule = schedule[schedule["EventFormat"] != "testing"]
     races_num = races_schedule["RoundNumber"].max()
 
-    for i in range(1, races_num + 1):
-        try:
-            session = fastf1.get_session(year, i, "R")
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        tasks = []
 
-            session.load(laps=False, telemetry=False, weather=False, messages=False)
-            filtered_results = session.results[session.results["Abbreviation"] == driver_abbr.upper()]
-
-            total_points += filtered_results["Points"].sum()
-
-            filtered_results_dict = filtered_results.astype(str).to_dict(orient="records")
-
-            if len(filtered_results_dict) > 0:
-                position = filtered_results["Position"].sum()
-
-                if position == 1.0:
-                    total_wins += 1
-
-                if position <= 3.0:
-                    total_podiums += 1
-
+        for i in range(1, races_num + 1):
             current_event = races_schedule[races_schedule["RoundNumber"] == i]
             event_format = current_event["EventFormat"].iloc[0]
 
-            if event_format in ["sprint", "sprint_shootout", "sprint_qualifying"]:
-                try:
-                    sprint_session = fastf1.get_session(year, i, "S")
-                    sprint_session.load(laps=False, telemetry=False, weather=False, messages=False)
-                    sprint_results = sprint_session.results[sprint_session.results["Abbreviation"] == driver_abbr.upper()]
+            tasks.append(executor.submit(get_round_stats, driver_abbr, year, i, event_format))
 
-                    total_points += sprint_results["Points"].sum()
-                except Exception as e:
-                    print(f"Skipping sprint round {i}: {e}")
-        except Exception as e:
-            print(f"Skipping round {i}: {e}")
-            continue
+        for future in as_completed(tasks):
+            round_result = future.result()
 
-    return { "year": year, "points": total_points, "wins": total_wins, "podiums": total_podiums }
+            total_points += round_result["points"]
+            total_wins += round_result["wins"]
+            total_podiums += round_result["podiums"]
+
+    stats = {"year": year, "points": total_points, "wins": total_wins, "podiums": total_podiums }
+    cache[cache_key] = stats
+
+    return stats
 
 @app.get("/max/stats/{year}")
 def get_max_stats(year: int):
