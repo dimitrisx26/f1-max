@@ -2,6 +2,7 @@ import os
 
 import fastf1
 from datetime import datetime
+from fastapi import HTTPException
 from diskcache import Cache
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -111,7 +112,11 @@ def calculate_yearly_stats(driver_abbr: str, year: int):
     total_wins = 0
     total_podiums = 0
 
-    schedule = fastf1.get_event_schedule(year)
+    try:
+        schedule = fastf1.get_event_schedule(year)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Schedule for year {year} not found. Error: {e}")
+
     races_schedule = schedule[schedule["EventFormat"] != "testing"]
     races_num = races_schedule["RoundNumber"].max()
 
@@ -207,19 +212,25 @@ def load_schedule(year: int):
     Fetches the full event schedule for a given Formula 1 season.
     Returns a list of dictionaries containing event details (date, location, format, etc.).
     """
-    schedule = fastf1.get_event_schedule(year)
-    schedule_dict = schedule.to_dict(orient="records")
-    return schedule_dict
+    try:
+        schedule = fastf1.get_event_schedule(year)
+        schedule_dict = schedule.to_dict(orient="records")
+        return schedule_dict
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Schedule for year {year} not found. Error: {e}")
 
 def load_race_results(year: int, race: int | str):
     """
     Fetches the specific race results for Max Verstappen ('VER') for a given year and round/race name.
     """
-    session = fastf1.get_session(year, race, "R")
-    session.load(laps=False, telemetry=False, weather=False, messages=False)
-    filtered_results = session.results[session.results["Abbreviation"] == "VER"]
-    filtered_results_dict = filtered_results.astype(str).to_dict(orient="records")
-    return filtered_results_dict
+    try:
+        session = fastf1.get_session(year, race, "R")
+        session.load(laps=False, telemetry=False, weather=False, messages=False)
+        filtered_results = session.results[session.results["Abbreviation"] == "VER"]
+        filtered_results_dict = filtered_results.astype(str).to_dict(orient="records")
+        return filtered_results_dict
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Race '{race}' in year {year} not found. Error: {e}")
 
 def load_year_summary(year: int):
     """
@@ -234,7 +245,11 @@ def load_year_summary(year: int):
     total_points = 0
     all_races_data = []
 
-    schedule = fastf1.get_event_schedule(year)
+    try:
+        schedule = fastf1.get_event_schedule(year)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Schedule for year {year} not found. Error: {e}")
+
     races_schedule = schedule[schedule["EventFormat"] != "testing"]
     races_num = races_schedule["RoundNumber"].max()
 
@@ -288,6 +303,9 @@ def load_track_history(track_name: str):
             total_wins += track_result["wins"]
             total_podiums += track_result["podiums"]
 
+    if races_entered == 0:
+        raise HTTPException(status_code=404, detail=f"Track '{track_name}' not found or no races entered by Max Verstappen.")
+
     track_history = { "track": track_name, "races_entered": races_entered, "wins": total_wins, "podiums": total_podiums }
     cache[cache_key] = track_history
 
@@ -322,6 +340,9 @@ def load_fastest_lap(track_name: str):
                     absolute_fastest_time = year_result["time"]
                     fastest_year = year_result["year"]
                     fastest_compound = year_result["compound"]
+
+    if fastest_year == 0:
+        raise HTTPException(status_code=404, detail=f"No fastest lap found for Max Verstappen at track '{track_name}'.")
 
     minutes = int(absolute_fastest_time // 60)
     seconds = absolute_fastest_time % 60
