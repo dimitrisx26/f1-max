@@ -17,6 +17,10 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+# ==========================================
+# SCHEDULE
+# ==========================================
+
 @app.get("/schedule/{year}")
 def get_schedule(year: int):
     """
@@ -24,12 +28,41 @@ def get_schedule(year: int):
     """
     return services.load_schedule(year)
 
+
+# ==========================================
+# RACE RESULTS
+# ==========================================
+
 @app.get("/max/results/{year}/{race}")
 def get_race_results(year: int, race: int | str):
     """
     Fetches the specific race results for Max Verstappen ('VER') for a given year and round/race name.
     """
     return services.load_race_results(year, race)
+
+
+# ==========================================
+# TRACK SPECIFIC
+# ==========================================
+
+@app.get("/max/track/{track_name}/history", response_model=models.TrackHistory)
+def get_track_history(track_name: str):
+    """
+    Fetches Max Verstappen's complete historical stats (wins, podiums, races entered) for a specific track.
+    """
+    return services.load_track_history(track_name)
+
+@app.get("/max/track/{track_name}/fastest-lap", response_model=models.FastestLap)
+def get_fastest_lap(track_name: str):
+    """
+    Finds Max Verstappen's absolute fastest historical lap time at a specific track.
+    """
+    return services.load_fastest_lap(track_name)
+
+
+# ==========================================
+# SEASON / YEAR STATS
+# ==========================================
 
 @app.get("/max/summary/{year}", response_model=models.YearSummary)
 def get_year_summary(year: int):
@@ -59,17 +92,3 @@ def compare_drivers(opp: str, year: int):
         "max_verstappen": max_stats,
         opp.upper(): opp_stats
     }
-
-@app.get("/max/track/{track_name}/history", response_model=models.TrackHistory)
-def get_track_history(track_name: str):
-    """
-    Fetches Max Verstappen's complete historical stats (wins, podiums, races entered) for a specific track.
-    """
-    return services.load_track_history(track_name)
-
-@app.get("/max/track/{track_name}/fastest-lap", response_model=models.FastestLap)
-def get_fastest_lap(track_name: str):
-    """
-    Finds Max Verstappen's absolute fastest historical lap time at a specific track.
-    """
-    return services.load_fastest_lap(track_name)
