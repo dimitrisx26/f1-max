@@ -2,7 +2,7 @@ import { DecimalPipe, UpperCasePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { MAX_RECORDS } from './f1.records';
-import { ComparisonData, DRIVER_MAP, DriverResult, FastestLapData, SeasonStats, SeasonSummary, TrackHistory, F1_TRACKS } from './f1.types';
+import { ComparisonData, DRIVER_MAP, DriverResult, FastestLapData, SeasonStats, SeasonSummary, TrackHistory, F1_TRACKS, F1Event } from './f1.types';
 
 @Component({
   selector: 'app-root',
@@ -69,17 +69,44 @@ export class App {
   tracks = F1_TRACKS.sort();
 
   /**
+   * The schedule for the currently selected year in the Race Deep-Dive section.
+   */
+  deepDiveSchedule = signal<F1Event[]>([]);
+
+  /**
    * Initializes the component.
    */
   ngOnInit(): void {
     // Preload sections with 2023 default values
     this.loadSeasonData('2023');
-    this.loadRaceData('2023', '1');
+    this.onDeepDiveYearChange('2023');
     this.loadComparison('2023', 'PER');
     this.loadTrackData('Bahrain');
   }
 
-
+  /**
+   * Called when the user changes the year in the Race Deep-Dive section.
+   * Loads the schedule for that year so the user can select a track.
+   * @param year the year to load schedule
+   */
+  onDeepDiveYearChange(year: string): void {
+    this.http.get<F1Event[]>(`${this.DOMAIN}/schedule/${year}`)
+      .subscribe({
+        next: (response) => {
+          // Filter out pre-season testing events
+          const racesOnly = response.filter(event => event.EventFormat !== 'testing');
+          this.deepDiveSchedule.set(racesOnly);
+          if (racesOnly.length > 0) {
+            // Automatically load the first race
+            this.loadRaceData(year, racesOnly[0].RoundNumber.toString());
+          }
+        },
+        error: (err) => {
+          console.error(err);
+          this.deepDiveSchedule.set([]);
+        }
+      });
+  }
 
   /**
    * Loads season data for a given year, including Max's stats and a summary of the season.

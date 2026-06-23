@@ -91,12 +91,16 @@
       <div class="panel-header">
         <h2>Race Deep-Dive</h2>
         <div class="controls">
-          <select #raceYear class="telemetry-input short">
+          <select #raceYear class="telemetry-input short" (change)="onDeepDiveYearChange(raceYear.value)">
             @for (year of years; track year) {
               <option [value]="year" [selected]="year === 2023">{{ year }}</option>
             }
           </select>
-          <input #raceRound type="number" placeholder="Round (e.g. 1)" class="telemetry-input short" min="1" max="24" value="1" />
+          <select #raceRound class="telemetry-input short">
+            @for (event of deepDiveSchedule(); track event.RoundNumber) {
+              <option [value]="event.RoundNumber">{{ event.EventName || event.Location }}</option>
+            }
+          </select>
           <button (click)="loadRaceData(raceYear.value, raceRound.value)" class="telemetry-btn">Load</button>
         </div>
       </div>

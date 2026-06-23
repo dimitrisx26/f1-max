@@ -50,6 +50,15 @@ export interface FastestLapData {
   compound: string;
 }
 
+export interface F1Event {
+  RoundNumber: number;
+  Country: string;
+  Location: string;
+  EventName: string;
+  EventDate: string;
+  EventFormat: string;
+}
+
 export const DRIVER_MAP: Record<string, string> = {
   "VER": "Max Verstappen",
   "PER": "Sergio Perez",
