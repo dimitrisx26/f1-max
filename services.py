@@ -1,5 +1,6 @@
 import os
 import fastf1
+import pandas as pd
 from datetime import datetime
 from diskcache import Cache
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -11,7 +12,7 @@ os.makedirs("cache", exist_ok=True)
 
 fastf1.Cache.enable_cache("cache")
 
-def get_cached_schedule(year: int):
+def get_cached_schedule(year: int) -> pd.DataFrame:
     """Caches the schedule to disk to avoid hitting Ergast API rate limits (500 calls/h)."""
     cache_key = f"schedule_v2_{year}"
     if cache_key in cache:
