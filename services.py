@@ -97,7 +97,7 @@ def load_track_history(track_name: str):
     total_podiums = 0
     current_year = datetime.now().year
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         tasks = []
 
         for i in range(2015, current_year):
@@ -167,7 +167,7 @@ def load_fastest_lap(track_name: str):
     fastest_compound = ""
     current_year = datetime.now().year
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         tasks = []
 
         for i in range(2018, current_year):
@@ -268,7 +268,7 @@ def load_year_summary(year: int):
     races_schedule = schedule[schedule["EventFormat"] != "testing"]
     races_num = races_schedule["RoundNumber"].max()
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         tasks = []
 
         for i in range(1, races_num + 1):
@@ -354,7 +354,7 @@ def calculate_yearly_stats(driver_abbr: str, year: int):
     races_schedule = schedule[schedule["EventFormat"] != "testing"]
     races_num = races_schedule["RoundNumber"].max()
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         tasks = []
 
         for i in range(1, races_num + 1):
