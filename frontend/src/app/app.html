@@ -87,22 +87,23 @@
     </section>
 
     <!-- RACE DEEP DIVE -->
-    <section class="data-panel panel-col-6">
-      <div class="panel-header">
+    <section class="data-panel panel-col-4">
+      <div class="panel-header" style="padding-bottom: 0;">
         <h2>Race Deep-Dive</h2>
-        <div class="controls">
-          <select #raceYear class="telemetry-input short" (change)="onDeepDiveYearChange(raceYear.value)">
-            @for (year of years; track year) {
-              <option [value]="year" [selected]="year === 2023">{{ year }}</option>
-            }
-          </select>
-          <select #raceRound class="telemetry-input short">
-            @for (event of deepDiveSchedule(); track event.RoundNumber) {
-              <option [value]="event.RoundNumber">{{ event.EventName || event.Location }}</option>
-            }
-          </select>
-          <button (click)="loadRaceData(raceYear.value, raceRound.value)" class="telemetry-btn">Load</button>
-        </div>
+      </div>
+      
+      <div class="controls" style="margin-bottom: 10px;">
+        <select #raceYear class="telemetry-input short" (change)="onDeepDiveYearChange(raceYear.value)">
+          @for (year of years; track year) {
+            <option [value]="year" [selected]="year === 2023">{{ year }}</option>
+          }
+        </select>
+        <select #raceRound class="telemetry-input" style="flex: 1;">
+          @for (event of deepDiveSchedule(); track event.RoundNumber) {
+            <option [value]="event.RoundNumber">{{ event.EventName || event.Location }}</option>
+          }
+        </select>
+        <button (click)="loadRaceData(raceYear.value, raceRound.value)" class="telemetry-btn">Load</button>
       </div>
 
       @if (isRaceLoading()) {
@@ -120,10 +121,10 @@
       }
     </section>
 
-    <!-- RIVALRIES & TRACKS -->
-    <section class="data-panel panel-col-6">
+    <!-- RIVALRIES -->
+    <section class="data-panel panel-col-4">
       <div class="panel-header" style="padding-bottom: 0;">
-        <h2>Versus & Tracks</h2>
+        <h2>Versus</h2>
       </div>
 
       <div class="controls" style="margin-bottom: 10px;">
@@ -133,41 +134,46 @@
           }
         </select>
         <select #compOpp class="telemetry-input short">
-          <option value="" disabled>Select Opponent</option>
           @for (opp of opponents; track opp.abbr) {
             <option [value]="opp.abbr" [selected]="opp.abbr === 'PER'">{{ opp.name }}</option>
           }
         </select>
-        <button (click)="loadComparison(compYear.value, compOpp.value)" class="telemetry-btn">Compare</button>
+        <button (click)="loadComparison(compYear.value, compOpp.value)" class="telemetry-btn">VS</button>
       </div>
 
       @if (isCompareLoading()) {
-        <div class="loader-container"><div class="spinner"></div> Analyzing...</div>
-      }
-      @else {
+        <div class="loader-container"><div class="spinner"></div> Comparing...</div>
+      } @else {
         @if (compareData()) {
-          <div class="vs-block" style="margin-bottom: 30px;">
+          <div class="stat-grid vs-block">
             <div class="driver">
-              <h4 class="name">{{ driverMap['VER'] }}</h4>
-              <span class="pts">{{ compareData()?.max_verstappen?.points }} PTS</span>
+              <span class="name">{{ driverMap['VER'] }}</span>
+              <span class="pts">{{ compareData()?.max_verstappen?.points }} pts</span>
             </div>
-            <div class="badge">VS</div>
+            <div class="vs-badge">VS</div>
             <div class="driver">
-              <h4 class="name">{{ driverMap[compOpp.value.toUpperCase()] || (compOpp.value | uppercase) }}</h4>
-              <span class="pts">{{ compareData()?.[compOpp.value.toUpperCase()]?.points }} PTS</span>
+              <span class="name">{{ driverMap[compOpp.value.toUpperCase()] || (compOpp.value | uppercase) }}</span>
+              <span class="pts">{{ compareData()?.[compOpp.value.toUpperCase()]?.points }} pts</span>
             </div>
           </div>
         }
       }
+    </section>
 
-      <div class="controls" style="margin-bottom: 20px;">
-        <select #trackName class="telemetry-input">
+    <!-- TRACK RECORDS (FASTEST LAP) -->
+    <section class="data-panel panel-col-4">
+      <div class="panel-header" style="padding-bottom: 0;">
+        <h2>Track Records</h2>
+      </div>
+
+      <div class="controls" style="margin-bottom: 10px;">
+        <select #trackName class="telemetry-input" style="flex: 1;">
           <option value="" disabled>Select Track</option>
           @for (track of tracks; track track) {
             <option [value]="track" [selected]="track === 'Bahrain'">{{ track }}</option>
           }
         </select>
-        <button (click)="loadTrackData(trackName.value)" class="telemetry-btn">Load Track</button>
+        <button (click)="loadTrackData(trackName.value)" class="telemetry-btn">Search</button>
       </div>
 
       @if (isTrackLoading()) {
@@ -177,7 +183,7 @@
         <div class="telemetry-stats">
           <div class="stat-box">
             <span class="label">Fastest Lap</span>
-            <span class="val" [class.good]="fastestLapData()">{{ fastestLapData()?.fastest_lap_time || 'N/A' }}</span>
+            <span class="val text-val" [class.good]="fastestLapData()">{{ fastestLapData()?.fastest_lap_time || 'N/A' }}</span>
           </div>
           <div class="stat-box">
             <span class="label">Compound</span>

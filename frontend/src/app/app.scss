@@ -251,6 +251,20 @@ body {
         box-shadow: 0 0 10px $dutch-orange-glow;
       }
     }
+    
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
   }
 }
 
