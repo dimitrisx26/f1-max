@@ -81,7 +81,7 @@ export class App {
     this.loadSeasonData('2023');
     this.onDeepDiveYearChange('2023');
     this.loadComparison('2023', 'PER');
-    this.loadTrackData('Bahrain');
+    this.loadTrackData('Sakhir');
   }
 
   /**
