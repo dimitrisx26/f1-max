@@ -171,7 +171,7 @@ export class App {
    */
   loadComparison(year: string, opp: string): void {
     this.isCompareLoading.set(true)
-    this.http.get<ComparisonData>(`${this.DOMAIN}/compare/ver/${opp}/${year}/`)
+    this.http.get<ComparisonData>(`${this.DOMAIN}/compare/ver/${opp}/${year}`)
       .subscribe({
         next: (response) => {
           this.compareData.set(response);
@@ -194,7 +194,7 @@ export class App {
     this.fastestLapData.set(null);
     this.historyData.set(null);
     
-    this.http.get<FastestLapData>(`${this.DOMAIN}/max/track/${track}/fastest-lap/`)
+    this.http.get<FastestLapData>(`${this.DOMAIN}/max/track/${track}/fastest-lap`)
       .subscribe({
         next: (response) => {
           this.fastestLapData.set(response);
@@ -207,7 +207,7 @@ export class App {
         }
       });
 
-    this.http.get<TrackHistory>(`${this.DOMAIN}/max/track/${track}/history/`)
+    this.http.get<TrackHistory>(`${this.DOMAIN}/max/track/${track}/history`)
       .subscribe({
         next: (response) => {
           this.historyData.set(response);
