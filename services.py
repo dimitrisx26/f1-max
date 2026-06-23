@@ -251,8 +251,14 @@ def get_round_summary(year: int, round_number: int, event_name: str, event_forma
                     sprint_res["RoundNumber"] = round_number
                     round_data.append(sprint_res)
             except Exception as e:
+                error_msg = str(e)
+                if "500 calls/h" in error_msg or "API" in error_msg:
+                    raise Exception(f"Rate limit: {error_msg}")
                 print(f"Skipping sprint round {round_number}: {e}")
     except Exception as e:
+        error_msg = str(e)
+        if "500 calls/h" in error_msg or "API" in error_msg:
+            raise Exception(f"Rate limit: {error_msg}")
         print(f"Skipping round {round_number}: {e}")
 
     return { "points": round_points, "round_data": round_data }
@@ -340,8 +346,14 @@ def get_round_stats(driver_abbr: str, year: int, round_number: int, event_format
 
                 total_points += sprint_results["Points"].sum()
             except Exception as e:
-                    print(f"Skipping sprint round {round_number}: {e}")
+                error_msg = str(e)
+                if "500 calls/h" in error_msg or "API" in error_msg:
+                    raise Exception(f"Rate limit: {error_msg}")
+                print(f"Skipping sprint round {round_number}: {e}")
     except Exception as e:
+        error_msg = str(e)
+        if "500 calls/h" in error_msg or "API" in error_msg:
+            raise Exception(f"Rate limit: {error_msg}")
         print(f"Skipping round {round_number}: {e}")
 
     return { "points": total_points, "wins": total_wins, "podiums": total_podiums }
