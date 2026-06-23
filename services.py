@@ -11,6 +11,16 @@ os.makedirs("cache", exist_ok=True)
 
 fastf1.Cache.enable_cache("cache")
 
+def get_cached_schedule(year: int):
+    """Caches the schedule to disk to avoid hitting Ergast API rate limits (500 calls/h)."""
+    cache_key = f"schedule_v2_{year}"
+    if cache_key in cache:
+        return cache[cache_key]
+    
+    schedule = fastf1.get_event_schedule(year)
+    cache[cache_key] = schedule
+    return schedule
+
 # ==========================================
 # SCHEDULE
 # ==========================================
@@ -21,7 +31,7 @@ def load_schedule(year: int):
     Returns a list of dictionaries containing event details (date, location, format, etc.).
     """
     try:
-        schedule = fastf1.get_event_schedule(year)
+        schedule = get_cached_schedule(year)
         schedule_dict = schedule.to_dict(orient="records")
         return schedule_dict
     except Exception as e:
@@ -59,7 +69,7 @@ def get_track_year_stats(year: int, track_name: str):
     total_wins = 0
     total_podiums = 0
 
-    schedule = fastf1.get_event_schedule(year)
+    schedule = get_cached_schedule(year)
     contains_track = schedule[schedule["Location"].str.contains(track_name, case=False)]
 
     if len(contains_track) == 0:
@@ -88,7 +98,7 @@ def load_track_history(track_name: str):
     Iterates through all years since 2015 concurrently.
     Results are cached to disk.
     """
-    cache_key = f"history_{track_name}"
+    cache_key = f"history_v2_{track_name}"
     if cache_key in cache:
         return cache[cache_key]
 
@@ -123,7 +133,7 @@ def get_year_fastest_lap(year: int, track_name: str):
     Helper function to find Max Verstappen's fastest lap time at a specific track for a single year.
     Returns the time in seconds and the tire compound used.
     """
-    schedule = fastf1.get_event_schedule(year)
+    schedule = get_cached_schedule(year)
     races_schedule = schedule[schedule["EventFormat"] != "testing"] 
     contains_track = races_schedule[schedule["Location"].str.contains(track_name, case=False)]
 
@@ -158,7 +168,7 @@ def load_fastest_lap(track_name: str):
     Searches concurrently through all years since 2018.
     Results are cached to disk.
     """
-    cache_key = f"fastest_lap_{track_name}"
+    cache_key = f"fastest_lap_v2_{track_name}"
     if cache_key in cache:
         return cache[cache_key]
 
@@ -253,7 +263,7 @@ def load_year_summary(year: int):
     Uses a thread pool to fetch each round concurrently.
     Results are cached to disk.
     """
-    cache_key = f"year_summary_{year}"
+    cache_key = f"year_summary_v2_{year}"
     if cache_key in cache:
         return cache[cache_key]
 
@@ -261,7 +271,7 @@ def load_year_summary(year: int):
     all_races_data = []
 
     try:
-        schedule = fastf1.get_event_schedule(year)
+        schedule = get_cached_schedule(year)
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Schedule for year {year} not found. Error: {e}")
 
@@ -285,6 +295,10 @@ def load_year_summary(year: int):
             all_races_data.extend(round_result["round_data"])
 
     all_races_data.sort(key=lambda x: x.get("RoundNumber", 0))
+    
+    if total_points == 0 and year < datetime.now().year:
+        raise HTTPException(status_code=500, detail="Data retrieval failed: 0 points calculated for a past season.")
+
     summary = { "year": year, "points": total_points, "races_data": all_races_data }
     cache[cache_key] = summary
 
@@ -338,7 +352,7 @@ def calculate_yearly_stats(driver_abbr: str, year: int):
     Uses a thread pool to fetch each round concurrently.
     Results are cached to disk.
     """
-    cache_key = f"stats_{driver_abbr}_{year}"
+    cache_key = f"stats_v2_{driver_abbr}_{year}"
     if cache_key in cache:
         return cache[cache_key]
 
@@ -347,7 +361,7 @@ def calculate_yearly_stats(driver_abbr: str, year: int):
     total_podiums = 0
 
     try:
-        schedule = fastf1.get_event_schedule(year)
+        schedule = get_cached_schedule(year)
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Schedule for year {year} not found. Error: {e}")
 
@@ -369,6 +383,9 @@ def calculate_yearly_stats(driver_abbr: str, year: int):
             total_points += round_result["points"]
             total_wins += round_result["wins"]
             total_podiums += round_result["podiums"]
+
+    if total_points == 0 and year < datetime.now().year:
+        raise HTTPException(status_code=500, detail="Data retrieval failed: 0 points calculated for a past season.")
 
     stats = {"year": year, "points": total_points, "wins": total_wins, "podiums": total_podiums }
     cache[cache_key] = stats
