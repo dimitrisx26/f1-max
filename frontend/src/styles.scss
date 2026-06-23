@@ -1,9 +1,12 @@
 /* You can add global styles to this file, and also import other style files */
 
 body {
-  background-color: #0b0e14; /* Deep premium dark mode */
-  color: #ffffff;
-  font-family: 'Inter', system-ui, sans-serif;
   margin: 0;
   padding: 0;
+  background: radial-gradient(circle at 15% 50%, #0c142b, #040914 60%);
+  background-attachment: fixed;
+  color: #f2f4f7;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
 }
