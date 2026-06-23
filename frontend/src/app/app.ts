@@ -1,8 +1,9 @@
 import { DecimalPipe, UpperCasePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { MAX_RECORDS } from './f1.records';
-import { ComparisonData, DRIVER_MAP, DriverResult, FastestLapData, SeasonStats, SeasonSummary, TrackHistory } from './f1.types';
+import Chart from 'chart.js/auto';
+import { ComparisonData, DRIVER_MAP, DriverResult, FastestLapData, SeasonStats, SeasonSummary, TrackHistory, F1_TRACKS } from './f1.types';
 
 @Component({
   selector: 'app-root',
@@ -53,9 +54,43 @@ export class App {
   isCompareLoading = signal<boolean>(false);
   isTrackLoading = signal<boolean>(false);
 
+  /**
+   * Years to display in the dropdown for selecting a season.
+   */
+  years = Array.from({length: 12}, (_, i) => 2026 - i);
+
+  /**
+   * Opponents to display in the dropdown for selecting a driver to compare against Max.
+   */
+  opponents = Object.entries(this.driverMap).map(([abbr, name]) => ({ abbr, name })).filter(o => o.abbr !== 'VER');
+
+  /**
+   * Tracks to display in the dropdown for selecting a track to view Max's history and fastest lap.
+   */
+  tracks = F1_TRACKS.sort();
+
+  /**
+   * Reference to the season chart canvas element and the Chart.js instance.
+   */
+  @ViewChild('seasonChart') seasonChartRef?: ElementRef<HTMLCanvasElement>;
+  seasonChartInstance: Chart | null = null;
+
+  /**
+   * Initializes the component.
+   */
   ngOnInit(): void {
-    // Load initial season data for 2023 on page load
+    // Preload sections with 2023 default values
     this.loadSeasonData('2023');
+    this.loadRaceData('2023', '1');
+    this.loadComparison('2023', 'PER');
+    this.loadTrackData('Bahrain');
+  }
+
+  /**
+   * After the view initializes, render the season chart.
+   */
+  ngAfterViewInit() {
+    this.renderChart();
   }
 
   /**
@@ -82,6 +117,7 @@ export class App {
         next: (response) => {
           this.summaryData.set(response);
           this.isSeasonLoading.set(false);
+          this.renderChart();
         },
         error: (err) => {
           console.error(err);
@@ -162,6 +198,88 @@ export class App {
           this.isTrackLoading.set(false);
         }
       });
+  }
+
+  /**
+   * Renders the season chart using Chart.js based on the current summary data.
+   */
+  renderChart() {
+    const summary = this.summaryData();
+    if (!summary || !summary.races_data || summary.races_data.length === 0 || !this.seasonChartRef) {
+      return;
+    }
+
+    const ctx = this.seasonChartRef.nativeElement.getContext('2d');
+    if (!ctx) return;
+
+    if (this.seasonChartInstance) {
+      this.seasonChartInstance.destroy();
+    }
+
+    const labels = summary.races_data.map(r => r.TrackName || 'Race');
+    const positions = summary.races_data.map(r => parseInt(r.Position) || 0);
+
+    this.seasonChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Finishing Position',
+          data: positions,
+          borderColor: '#ff5b00',
+          backgroundColor: 'rgba(255, 91, 0, 0.2)',
+          borderWidth: 2,
+          pointBackgroundColor: '#fff',
+          pointBorderColor: '#ff5b00',
+          pointRadius: 4,
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            reverse: true, // Lower number is better in F1
+            min: 1,
+            max: 20,
+            ticks: {
+              stepSize: 1,
+              color: '#8f9bb3'
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.05)'
+            }
+          },
+          x: {
+            ticks: {
+              color: '#8f9bb3',
+              maxRotation: 45,
+              minRotation: 45
+            },
+            grid: {
+              display: false
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            backgroundColor: '#111d36',
+            titleColor: '#fff',
+            bodyColor: '#f2f4f7',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            callbacks: {
+              label: (context) => `P${context.parsed.y}`
+            }
+          }
+        }
+      }
+    });
   }
 
 }

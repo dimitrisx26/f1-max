@@ -11,7 +11,11 @@
       <div class="panel-header">
         <h2>Season Overview</h2>
         <div class="controls">
-          <input #seasonYear type="number" placeholder="Year" class="telemetry-input" />
+          <select #seasonYear class="telemetry-input">
+            @for (year of years; track year) {
+              <option [value]="year" [selected]="year === 2023">{{ year }}</option>
+            }
+          </select>
           <button (click)="loadSeasonData(seasonYear.value)" class="telemetry-btn">Load</button>
         </div>
       </div>
@@ -29,22 +33,9 @@
         }
 
         @if (summaryData()) {
-          <div style="margin-top: 10px;">
-            <div class="log-header">
-              <span>Race</span>
-              <span>Started</span>
-              <span>Status</span>
-              <span>Finished</span>
-            </div>
-            <div class="scroll-area">
-              @for (race of summaryData()?.races_data; track $index) {
-                <div class="race-row">
-                  <span class="track">{{ race.TrackName || 'F1 Event' }}</span>
-                  <span class="grid">P{{ race.GridPosition | number:'1.0-0' }}</span>
-                  <span class="status">{{ race.Status }}</span>
-                  <span class="finish">P{{ race.Position | number:'1.0-0' }}</span>
-                </div>
-              }
+          <div style="margin-top: 20px;">
+            <div class="chart-container" style="position: relative; height:250px; width:100%;">
+              <canvas #seasonChart></canvas>
             </div>
           </div>
         }
@@ -78,8 +69,12 @@
       <div class="panel-header">
         <h2>Race Deep-Dive</h2>
         <div class="controls">
-          <input #raceYear type="number" placeholder="Year" class="telemetry-input short" />
-          <input #raceRound type="text" placeholder="Round" class="telemetry-input short" />
+          <select #raceYear class="telemetry-input short">
+            @for (year of years; track year) {
+              <option [value]="year" [selected]="year === 2023">{{ year }}</option>
+            }
+          </select>
+          <input #raceRound type="number" placeholder="Round (e.g. 1)" class="telemetry-input short" min="1" max="24" value="1" />
           <button (click)="loadRaceData(raceYear.value, raceRound.value)" class="telemetry-btn">Load</button>
         </div>
       </div>
@@ -106,8 +101,17 @@
       </div>
 
       <div class="controls" style="margin-bottom: 10px;">
-        <input #compYear type="number" placeholder="Year" class="telemetry-input short" />
-        <input #compOpp type="text" placeholder="Driver" class="telemetry-input short" />
+        <select #compYear class="telemetry-input short">
+          @for (year of years; track year) {
+            <option [value]="year" [selected]="year === 2023">{{ year }}</option>
+          }
+        </select>
+        <select #compOpp class="telemetry-input short">
+          <option value="" disabled>Select Opponent</option>
+          @for (opp of opponents; track opp.abbr) {
+            <option [value]="opp.abbr" [selected]="opp.abbr === 'PER'">{{ opp.name }}</option>
+          }
+        </select>
         <button (click)="loadComparison(compYear.value, compOpp.value)" class="telemetry-btn">Compare</button>
       </div>
 
@@ -131,8 +135,13 @@
       }
 
       <div class="controls" style="margin-bottom: 20px;">
-        <input #trackName type="text" placeholder="Track Name" class="telemetry-input" />
-        <button (click)="loadTrackData(trackName.value)" class="telemetry-btn">Search Track</button>
+        <select #trackName class="telemetry-input">
+          <option value="" disabled>Select Track</option>
+          @for (track of tracks; track track) {
+            <option [value]="track" [selected]="track === 'Bahrain'">{{ track }}</option>
+          }
+        </select>
+        <button (click)="loadTrackData(trackName.value)" class="telemetry-btn">Load Track</button>
       </div>
 
       @if (isTrackLoading()) {

@@ -79,3 +79,36 @@ export const DRIVER_MAP: Record<string, string> = {
   "MAZ": "Nikita Mazepin",
   "KUB": "Robert Kubica"
 };
+
+export const F1_TRACKS: string[] = [
+  "Bahrain",
+  "Saudi Arabia",
+  "Australia",
+  "Japan",
+  "China",
+  "Miami",
+  "Emilia Romagna",
+  "Monaco",
+  "Canada",
+  "Spain",
+  "Austria",
+  "Great Britain",
+  "Hungary",
+  "Belgium",
+  "Netherlands",
+  "Italy",
+  "Azerbaijan",
+  "Singapore",
+  "United States",
+  "Mexico",
+  "Brazil",
+  "Las Vegas",
+  "Qatar",
+  "Abu Dhabi",
+  "Malaysia",
+  "Russia",
+  "France",
+  "Germany",
+  "Turkey",
+  "Portugal"
+];
