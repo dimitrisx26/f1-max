@@ -24,41 +24,48 @@
         <div class="loader-container"><div class="spinner"></div> Fetching season data...</div>
       }
       @else {
-        @if (statsData()) {
-          <div class="telemetry-stats">
-            <div class="stat-box"><span class="label">Total Points</span><span class="val">{{ statsData()?.points }}</span></div>
-            <div class="stat-box"><span class="label">Wins</span><span class="val">{{ statsData()?.wins }}</span></div>
-            <div class="stat-box"><span class="label">Podiums</span><span class="val">{{ statsData()?.podiums }}</span></div>
-          </div>
-        }
+        @if (statsData() || summaryData()) {
+          @if (statsData()) {
+            <div class="telemetry-stats">
+              <div class="stat-box"><span class="label">Total Points</span><span class="val">{{ statsData()?.points }}</span></div>
+              <div class="stat-box"><span class="label">Wins</span><span class="val">{{ statsData()?.wins }}</span></div>
+              <div class="stat-box"><span class="label">Podiums</span><span class="val">{{ statsData()?.podiums }}</span></div>
+            </div>
+          }
 
-        @if (summaryData()) {
-          <div style="margin-top: 24px;">
-            <div class="panel-header" style="padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 16px;">
-              <h3 style="font-size: 1.2rem; margin: 0; color: #fff; font-weight: 600;">Race Log</h3>
-            </div>
-            <div class="scroll-area" style="max-height: 350px;">
-              @for (race of summaryData()?.races_data; track $index) {
-                <div class="record-row" style="padding: 16px 0;">
-                  <div class="record-header" style="margin-bottom: 6px;">
-                    <h3 class="title" style="font-size: 1.05rem;">{{ race.TrackName || 'F1 Grand Prix' }}</h3>
-                    <span class="year" 
-                          [style.background]="race.Position === '1.0' ? 'rgba(255, 91, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)'" 
-                          [style.color]="race.Position === '1.0' ? '#ff5b00' : '#fff'">
-                      Finish: P{{ race.Position | number:'1.0-0' }}
-                    </span>
-                  </div>
-                  <div class="record-data" style="gap: 16px;">
-                    <p class="desc" style="margin: 0; display: flex; gap: 16px; width: 100%; font-size: 0.9rem;">
-                      <span><strong>Start:</strong> P{{ race.GridPosition | number:'1.0-0' }}</span>
-                      <span [class.good]="race.Status === 'Finished' || race.Status.includes('+')">
-                        <strong>Status:</strong> {{ race.Status }}
+          @if (summaryData()) {
+            <div style="margin-top: 24px;">
+              <div class="panel-header" style="padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 16px;">
+                <h3 style="font-size: 1.2rem; margin: 0; color: #fff; font-weight: 600;">Race Log</h3>
+              </div>
+              <div class="scroll-area" style="max-height: 350px;">
+                @for (race of summaryData()?.races_data; track $index) {
+                  <div class="record-row" style="padding: 16px 0;">
+                    <div class="record-header" style="margin-bottom: 6px;">
+                      <h3 class="title" style="font-size: 1.05rem;">{{ race.TrackName || 'F1 Grand Prix' }}</h3>
+                      <span class="year" 
+                            [style.background]="race.Position === '1.0' ? 'rgba(255, 91, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)'" 
+                            [style.color]="race.Position === '1.0' ? '#ff5b00' : '#fff'">
+                        Finish: P{{ race.Position | number:'1.0-0' }}
                       </span>
-                    </p>
+                    </div>
+                    <div class="record-data" style="gap: 16px;">
+                      <p class="desc" style="margin: 0; display: flex; gap: 16px; width: 100%; font-size: 0.9rem;">
+                        <span><strong>Start:</strong> P{{ race.GridPosition | number:'1.0-0' }}</span>
+                        <span [class.good]="race.Status === 'Finished' || race.Status.includes('+')">
+                          <strong>Status:</strong> {{ race.Status }}
+                        </span>
+                      </p>
+                    </div>
                   </div>
-                </div>
-              }
+                }
+              </div>
             </div>
+          }
+        } @else {
+          <div class="empty-state">
+            <span class="icon">🏁</span>
+            <span>No season data available. Check the year or try again later.</span>
           </div>
         }
       }
@@ -117,6 +124,11 @@
             <div class="stat-box"><span class="label">Points</span><span class="val">{{ resultsData()?.[0]?.Points }}</span></div>
             <div class="stat-box"><span class="label">Status</span><span class="val text-val good">{{ resultsData()?.[0]?.Status }}</span></div>
           </div>
+        } @else {
+          <div class="empty-state">
+            <span class="icon">🏎️</span>
+            <span>Race data not available.</span>
+          </div>
         }
       }
     </section>
@@ -156,6 +168,11 @@
               <span class="pts">{{ compareData()?.[compOpp.value.toUpperCase()]?.points }} PTS</span>
             </div>
           </div>
+        } @else {
+          <div class="empty-state">
+            <span class="icon">⚔️</span>
+            <span>Comparison data not available.</span>
+          </div>
         }
       }
     </section>
@@ -177,24 +194,30 @@
 
       @if (isTrackLoading()) {
         <div class="loader-container"><div class="spinner"></div> Searching...</div>
-      }
-      @else {
-        <div class="telemetry-stats">
-          <div class="stat-box">
-            <span class="label">Fastest Lap</span>
-            <span class="val text-val" [class.good]="fastestLapData()">{{ fastestLapData()?.fastest_lap_time || 'N/A' }}</span>
-          </div>
-          <div class="stat-box">
-            <span class="label">Compound</span>
-            <span class="val text-val">{{ fastestLapData()?.compound || '-' }}</span>
-          </div>
-          @if (historyData()) {
+      } @else {
+        @if (fastestLapData() || historyData()) {
+          <div class="telemetry-stats">
             <div class="stat-box">
-              <span class="label">Track Wins</span>
-              <span class="val">{{ historyData()?.wins }}</span>
+              <span class="label">Fastest Lap</span>
+              <span class="val text-val" [class.good]="fastestLapData()">{{ fastestLapData()?.fastest_lap_time || 'N/A' }}</span>
             </div>
-          }
-        </div>
+            <div class="stat-box">
+              <span class="label">Compound</span>
+              <span class="val text-val">{{ fastestLapData()?.compound || '-' }}</span>
+            </div>
+            @if (historyData()) {
+              <div class="stat-box">
+                <span class="label">Track Wins</span>
+                <span class="val">{{ historyData()?.wins }}</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="empty-state">
+            <span class="icon">⏱️</span>
+            <span>No track records found.</span>
+          </div>
+        }
       }
     </section>
 

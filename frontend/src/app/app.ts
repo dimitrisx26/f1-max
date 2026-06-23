@@ -151,6 +151,7 @@ export class App {
    */
   loadRaceData(year: string, round: string): void {
     this.isRaceLoading.set(true)
+    this.resultsData.set(null);
     this.http.get<DriverResult[]>(`${this.DOMAIN}/max/results/${year}/${round}`)
       .subscribe({
         next: (response) => {
@@ -159,6 +160,7 @@ export class App {
         },
         error: (err) => {
           console.error(err);
+          this.resultsData.set(null);
           this.isRaceLoading.set(false);
         }
       });
@@ -170,7 +172,8 @@ export class App {
    * @param opp the opponent to load data
    */
   loadComparison(year: string, opp: string): void {
-    this.isCompareLoading.set(true)
+    this.isCompareLoading.set(true);
+    this.compareData.set(null);
     this.http.get<ComparisonData>(`${this.DOMAIN}/compare/ver/${opp}/${year}`)
       .subscribe({
         next: (response) => {
@@ -179,6 +182,7 @@ export class App {
         },
         error: (err) => {
           console.error(err);
+          this.compareData.set(null);
           this.isCompareLoading.set(false);
         }
       });
