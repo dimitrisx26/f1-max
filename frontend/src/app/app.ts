@@ -18,7 +18,7 @@ export class App {
   /**
    * API Domain
    */
-  private readonly DOMAIN = "https://f1-max.onrender.com"
+  private readonly DOMAIN = "https://f1-max-backend.duckdns.org"
 
   /**
    * Provides the HttpClient service for making HTTP requests.
