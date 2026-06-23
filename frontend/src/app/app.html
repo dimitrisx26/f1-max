@@ -145,15 +145,15 @@
         <div class="loader-container"><div class="spinner"></div> Comparing...</div>
       } @else {
         @if (compareData()) {
-          <div class="stat-grid vs-block">
+          <div class="vs-block" style="margin-bottom: 30px;">
             <div class="driver">
-              <span class="name">{{ driverMap['VER'] }}</span>
-              <span class="pts">{{ compareData()?.max_verstappen?.points }} pts</span>
+              <h4 class="name">{{ driverMap['VER'] }}</h4>
+              <span class="pts">{{ compareData()?.max_verstappen?.points }} PTS</span>
             </div>
-            <div class="vs-badge">VS</div>
+            <div class="badge">VS</div>
             <div class="driver">
-              <span class="name">{{ driverMap[compOpp.value.toUpperCase()] || (compOpp.value | uppercase) }}</span>
-              <span class="pts">{{ compareData()?.[compOpp.value.toUpperCase()]?.points }} pts</span>
+              <h4 class="name">{{ driverMap[compOpp.value.toUpperCase()] || (compOpp.value | uppercase) }}</h4>
+              <span class="pts">{{ compareData()?.[compOpp.value.toUpperCase()]?.points }} PTS</span>
             </div>
           </div>
         }
