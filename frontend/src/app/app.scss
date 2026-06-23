@@ -159,6 +159,12 @@ body {
       padding: 12px;
       .val {
         font-size: 1.8rem;
+
+        &.text-val {
+          font-size: 1.0rem;
+          white-space: normal;
+          overflow-wrap: break-word;
+        }
       }
     }
   }
@@ -362,6 +368,13 @@ body {
       color: #fff;
       letter-spacing: -1.5px;
       line-height: 1.1;
+
+      &.text-val {
+        font-size: clamp(1.0rem, 2.5vw, 1.4rem);
+        letter-spacing: -0.2px;
+        white-space: normal;
+        overflow-wrap: break-word;
+      }
 
       &.good {
         color: $dutch-orange;

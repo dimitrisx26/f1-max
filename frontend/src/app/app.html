@@ -110,7 +110,7 @@
             <div class="stat-box"><span class="label">Grid Position</span><span class="val">P{{ resultsData()?.[0]?.GridPosition | number:'1.0-0' }}</span></div>
             <div class="stat-box"><span class="label">Finish</span><span class="val">P{{ resultsData()?.[0]?.Position | number:'1.0-0' }}</span></div>
             <div class="stat-box"><span class="label">Points</span><span class="val">{{ resultsData()?.[0]?.Points }}</span></div>
-            <div class="stat-box"><span class="label">Status</span><span class="val good">{{ resultsData()?.[0]?.Status }}</span></div>
+            <div class="stat-box"><span class="label">Status</span><span class="val text-val good">{{ resultsData()?.[0]?.Status }}</span></div>
           </div>
         }
       }
@@ -177,7 +177,7 @@
           </div>
           <div class="stat-box">
             <span class="label">Compound</span>
-            <span class="val" style="font-size: 1.5rem;">{{ fastestLapData()?.compound || '-' }}</span>
+            <span class="val text-val">{{ fastestLapData()?.compound || '-' }}</span>
           </div>
           @if (historyData()) {
             <div class="stat-box">
