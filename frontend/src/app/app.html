@@ -168,9 +168,8 @@
 
       <div class="controls" style="margin-bottom: 10px;">
         <select #trackName class="telemetry-input" style="flex: 1;">
-          <option value="" disabled>Select Track</option>
-          @for (track of tracks; track track) {
-            <option [value]="track" [selected]="track === 'Bahrain'">{{ track }}</option>
+          @for (event of deepDiveSchedule(); track event.RoundNumber) {
+            <option [value]="event.Location">{{ event.EventName || event.Location }}</option>
           }
         </select>
         <button (click)="loadTrackData(trackName.value)" class="telemetry-btn">Search</button>
