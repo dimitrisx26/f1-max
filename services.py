@@ -16,7 +16,7 @@ def get_cached_schedule(year: int) -> pd.DataFrame:
     """Caches the schedule to disk to avoid hitting Ergast API rate limits (500 calls/h)."""
     cache_key = f"schedule_v2_{year}"
     if cache_key in cache:
-        return cache[cache_key]
+        return cache[cache_key] # pyright: ignore[reportReturnType]
     
     schedule = fastf1.get_event_schedule(year)
     cache[cache_key] = schedule
