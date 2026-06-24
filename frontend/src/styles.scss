@@ -3,10 +3,15 @@
 body {
   margin: 0;
   padding: 0;
-  background: radial-gradient(circle at 15% 50%, #0c142b, #040914 60%);
-  background-attachment: fixed;
+  background: url('/Max-Verstappen-1024x1024.png') no-repeat center center fixed,
+              radial-gradient(circle at 15% 50%, #0c142b, #040914 60%) fixed;
+  background-size: 75vw, cover;
   color: #f2f4f7;
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+
+  @media (max-width: 768px) {
+    background-size: 150vw, cover;
+  }
 }
